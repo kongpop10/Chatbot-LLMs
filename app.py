@@ -1,5 +1,6 @@
 import streamlit as st
 from openai import OpenAI
+from anthropic import Anthropic
 import re
 import json
 from datetime import datetime
@@ -138,6 +139,13 @@ def render_message(content):
         elif part:  # Regular text
             st.markdown(part)
 
+# Define model names as variables
+MODEL_NAMES = {
+    "XAI": "grok-beta",
+    "OpenAI": "gpt-4o",
+    "Anthropic": "claude-3-5-sonnet-20241022"
+}
+
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = [
@@ -152,11 +160,11 @@ if "latex_blocks" not in st.session_state:
 with st.sidebar:
     st.title("💬 Conversations")
     
-    # Add model selector
+    # Update model selector to include Anthropic
     model_provider = st.selectbox(
         "Select Model Provider",
-        ["xAI", "OpenAI"],
-        help="Choose between XAI and OpenAI models"
+        ["XAI", "OpenAI", "Anthropic"],
+        help="Choose between XAI, OpenAI, and Anthropic models"
     )
     
     # New conversation button
@@ -221,10 +229,13 @@ with st.sidebar:
 # Main chat interface
 if model_provider == "XAI":
     st.title("🤖 Grok Chat")
-    st.markdown("Chat with Grok-Beta, powered by xAI")
-else:
+    st.markdown(f"Chat with {MODEL_NAMES['XAI']}, powered by xAI")
+elif model_provider == "OpenAI":
     st.title("🤖 OpenAI Chat")
-    st.markdown("Chat with GPT-4 Turbo Preview, powered by OpenAI")
+    st.markdown(f"Chat with {MODEL_NAMES['OpenAI']}, powered by OpenAI")
+else:  # Anthropic
+    st.title("🤖 Claude Chat")
+    st.markdown(f"Chat with {MODEL_NAMES['Anthropic']}, powered by Anthropic")
 
 # Display chat messages
 for message in st.session_state.messages:
@@ -247,17 +258,33 @@ if prompt := st.chat_input("What's on your mind?"):
         try:
             if model_provider == "XAI":
                 completion = client.chat.completions.create(
-                    model="grok-beta",
+                    model=MODEL_NAMES["XAI"],
                     messages=st.session_state.messages
                 )
                 response = completion.choices[0].message.content
-            else:  # OpenAI
+            elif model_provider == "OpenAI":
                 openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
                 completion = openai_client.chat.completions.create(
-                    model="gpt-4-turbo-preview",
+                    model=MODEL_NAMES["OpenAI"],
                     messages=st.session_state.messages
                 )
                 response = completion.choices[0].message.content
+            else:  # Anthropic
+                anthropic_client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+                messages = [
+                    {
+                        "role": "user" if msg["role"] == "user" else "assistant",
+                        "content": msg["content"]
+                    }
+                    for msg in st.session_state.messages[1:]  # Skip system message
+                ]
+                completion = anthropic_client.messages.create(
+                    model=MODEL_NAMES["Anthropic"],
+                    max_tokens=4096,
+                    messages=messages,
+                    system=st.session_state.messages[0]["content"]  # Use system message
+                )
+                response = completion.content[0].text
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
