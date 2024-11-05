@@ -79,6 +79,23 @@ def get_saved_conversations():
                 })
     return sorted(conversations, key=lambda x: x["timestamp"], reverse=True)
 
+def update_conversation_title(filename, new_title):
+    try:
+        filepath = f"conversations/{filename}"
+        with open(filepath, "r") as f:
+            data = json.load(f)
+        
+        # Update the title
+        data["title"] = new_title
+        
+        # Save the updated data
+        with open(filepath, "w") as f:
+            json.dump(data, f)
+        return True
+    except Exception as e:
+        st.error(f"Error updating title: {str(e)}")
+        return False
+
 def process_message_content(content):
     # Process code blocks (```language\ncode```)
     code_pattern = r'```(\w+)?\n(.*?)```'
@@ -136,7 +153,7 @@ with st.sidebar:
     
     # New conversation button
     if st.button("New Conversation"):
-        st.session_state.messages = [st.session_state.messages[0]]  # Keep only system message
+        st.session_state.messages = [st.session_state.messages[0]]
         st.session_state.code_blocks = {}
         st.session_state.latex_blocks = {}
         if "current_conversation_id" in st.session_state:
@@ -147,15 +164,50 @@ with st.sidebar:
     st.subheader("Saved Conversations")
     conversations = get_saved_conversations()
     
+    # Initialize session state for editing titles if not exists
+    if "editing_title" not in st.session_state:
+        st.session_state.editing_title = None
+    
     for conv in conversations:
-        col1, col2 = st.columns([4, 1])
+        col1, col2, col3 = st.columns([3, 1, 1])
+        
         with col1:
-            if st.button(f"📜 {conv['title']}", key=f"load_{conv['filename']}"):
-                load_conversation(f"conversations/{conv['filename']}")
-                st.rerun()
+            # Show either edit input or conversation title
+            if st.session_state.editing_title == conv['filename']:
+                # Edit mode
+                new_title = st.text_input(
+                    "Edit title",
+                    value=conv['title'],
+                    key=f"edit_{conv['filename']}",
+                    label_visibility="collapsed"
+                )
+                if new_title != conv['title']:
+                    if update_conversation_title(conv['filename'], new_title):
+                        st.session_state.editing_title = None
+                        st.rerun()
+            else:
+                # Display mode
+                if st.button(f"📜 {conv['title']}", key=f"load_{conv['filename']}"):
+                    load_conversation(f"conversations/{conv['filename']}")
+                    st.rerun()
+        
         with col2:
+            # Edit/Save button
+            if st.session_state.editing_title == conv['filename']:
+                if st.button("💾", key=f"save_{conv['filename']}"):
+                    st.session_state.editing_title = None
+                    st.rerun()
+            else:
+                if st.button("✏️", key=f"edit_{conv['filename']}"):
+                    st.session_state.editing_title = conv['filename']
+                    st.rerun()
+        
+        with col3:
+            # Delete button
             if st.button("🗑️", key=f"delete_{conv['filename']}"):
                 if delete_conversation(conv['filename']):
+                    if st.session_state.editing_title == conv['filename']:
+                        st.session_state.editing_title = None
                     st.rerun()
 
 # Main chat interface
@@ -181,21 +233,22 @@ if prompt := st.chat_input("What's on your mind?"):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
+            # Get AI response
             completion = client.chat.completions.create(
                 model="grok-beta",
                 messages=st.session_state.messages
             )
             response = completion.choices[0].message.content
             
-            # Process and render the response
-            processed_response = process_message_content(response)
-            render_message(processed_response)
-            
-            # Add assistant response to chat history
+            # Add assistant response to chat history immediately
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # Auto-save conversation after new message
+            # Save conversation right after getting the response
             save_conversation()
+            
+            # Then process and display the response
+            processed_response = process_message_content(response)
+            render_message(processed_response)
             
         except Exception as e:
             st.error(f"Error: {str(e)}")
