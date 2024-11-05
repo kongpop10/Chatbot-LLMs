@@ -1,48 +1,36 @@
-# Grok Chat Application
+# AI Chat Application
 
-A Streamlit-based chat application that interfaces with xAI's Grok model, featuring a ChatGPT-like interface with additional capabilities for handling code and LaTeX expressions.
+A Streamlit-based chat application that allows you to interact with multiple AI models.
 
 ## Features
 
-- 💬 Interactive chat interface with Grok AI
-- 📝 Support for code syntax highlighting and LaTeX rendering
-- 💾 Automatic conversation saving
-- 📂 Conversation management (load, edit, delete)
-- 🔍 Code block detection and formatting
-- ➗ LaTeX mathematical expression support
+- 🤖 Support for multiple AI models:
+  - xAI's Grok-Beta
+  - OpenAI's GPT-4 Turbo Preview
+- 💬 Conversation Management:
+  - Save conversations automatically
+  - Load previous conversations
+  - Delete unwanted conversations
+  - Edit conversation titles
+- 📝 Rich Text Support:
+  - Code blocks with syntax highlighting
+  - LaTeX mathematical expressions
+- 🎨 Clean and intuitive user interface
+- 🔄 Real-time model switching via sidebar
 
-## Prerequisites
+## Setup
 
-- Python 3.8 or higher
-- Streamlit
-- xAI API key
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd grok-chat
-```
-
-2. Create and activate a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install the required packages:
+1. Clone the repository
+2. Install the required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up your xAI API key:
-   - Create a `.streamlit` folder in the project root
-   - Create a `secrets.toml` file inside the `.streamlit` folder
-   - Add your API key:
-   ```toml
-   XAI_API_KEY = "your-api-key-here"
-   ```
+3. Create a `.streamlit/secrets.toml` file with your API keys:
+```toml
+XAI_API_KEY = "your-xai-api-key"
+OPENAI_API_KEY = "your-openai-api-key"
+```
 
 ## Usage
 
@@ -53,9 +41,22 @@ streamlit run app.py
 
 2. Open your web browser and navigate to the provided URL (typically `http://localhost:8501`)
 
-3. Start chatting with Grok!
+3. Select your preferred model:
+   - Choose between xAI (Grok-Beta) or OpenAI (GPT-4 Turbo) from the sidebar dropdown
+   - The interface will update to reflect your chosen model
+
+4. Start chatting:
+   - Type your message in the chat input
+   - View AI responses with support for code and LaTeX rendering
+   - Conversations are automatically saved
 
 ## Features in Detail
+
+### Model Selection
+- Switch between models in real-time using the sidebar dropdown
+- Each model has its own unique capabilities:
+  - Grok-Beta: xAI's latest model
+  - GPT-4 Turbo Preview: OpenAI's advanced model
 
 ### Code Handling
 - Automatically detects code blocks in messages
@@ -75,7 +76,7 @@ streamlit run app.py
 
 ## File Structure
 ```
-grok-chat/
+ai-chat/
 ├── .streamlit/
 │   └── secrets.toml
 ├── conversations/
@@ -88,7 +89,7 @@ grok-chat/
 ## Security Notes
 
 - Never commit your `.streamlit/secrets.toml` file
-- Keep your API key confidential
+- Keep your API keys confidential
 - The `conversations` directory contains chat history - handle with appropriate privacy considerations
 
 ## Contributing
