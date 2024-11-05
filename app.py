@@ -4,6 +4,7 @@ import re
 import json
 from datetime import datetime
 import os
+import openai
 
 # Page config
 st.set_page_config(page_title="Grok Chat", page_icon="🤖", layout="wide")
@@ -151,6 +152,13 @@ if "latex_blocks" not in st.session_state:
 with st.sidebar:
     st.title("💬 Conversations")
     
+    # Add model selector
+    model_provider = st.selectbox(
+        "Select Model Provider",
+        ["xAI", "OpenAI"],
+        help="Choose between XAI and OpenAI models"
+    )
+    
     # New conversation button
     if st.button("New Conversation"):
         st.session_state.messages = [st.session_state.messages[0]]
@@ -211,8 +219,12 @@ with st.sidebar:
                     st.rerun()
 
 # Main chat interface
-st.title("🤖 Grok Chat")
-st.markdown("Chat with Grok, powered by xAI")
+if model_provider == "XAI":
+    st.title("🤖 Grok Chat")
+    st.markdown("Chat with Grok-Beta, powered by xAI")
+else:
+    st.title("🤖 OpenAI Chat")
+    st.markdown("Chat with GPT-4 Turbo Preview, powered by OpenAI")
 
 # Display chat messages
 for message in st.session_state.messages:
@@ -233,20 +245,29 @@ if prompt := st.chat_input("What's on your mind?"):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
-            # Get AI response
-            completion = client.chat.completions.create(
-                model="grok-beta",
-                messages=st.session_state.messages
-            )
-            response = completion.choices[0].message.content
+            if model_provider == "XAI":
+                completion = client.chat.completions.create(
+                    model="grok-beta",
+                    messages=st.session_state.messages
+                )
+                response = completion.choices[0].message.content
+            else:  # OpenAI
+                openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+                completion = openai_client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=st.session_state.messages
+                )
+                response = completion.choices[0].message.content
             
-            # Add assistant response to chat history immediately
+            # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
             
-            # Save conversation right after getting the response
-            save_conversation()
+            # Save conversation and rerun if this is the first message
+            saved_file = save_conversation()
+            if len(st.session_state.messages) == 3:  # System message + first user message + first AI response
+                st.rerun()
             
-            # Then process and display the response
+            # Process and display the response
             processed_response = process_message_content(response)
             render_message(processed_response)
             
