@@ -1,17 +1,21 @@
-# AI Chat Application
+# AI Chat Assistant
 
-A Streamlit-based chat application that allows you to interact with multiple AI models.
+A versatile chat application built with Streamlit that provides unified access to multiple Language Model providers (OpenAI, Anthropic, and DeepSeek) through liteLLM integration.
 
 ## Features
 
-- 🤖 Support for multiple AI models:
-  - xAI's Grok-Beta
-  - OpenAI's GPT-4 Turbo Preview
-  - Anthropic's Claude 3 Sonnet
-- 💬 Conversation Management:
-  - Save conversations automatically
-  - Load previous conversations
-  - Delete unwanted conversations
+- **Unified LLM Integration**: Seamlessly interact with multiple AI models:
+  - OpenAI (o1-mini)
+  - Anthropic (claude-3-5-sonnet-latest)
+  - DeepSeek (deepseek-chat)
+
+- **Rich Content Support**:
+  - Code block rendering with syntax highlighting
+  - LaTeX mathematical expression support
+  - Markdown formatting
+
+- **Conversation Management**:
+  - Save and load conversations
   - Edit conversation titles
 - 📝 Rich Text Support:
   - Code blocks with syntax highlighting
@@ -27,39 +31,35 @@ A Streamlit-based chat application that allows you to interact with multiple AI 
 pip install -r requirements.txt
 ```
 
-3. Create a `.streamlit/secrets.toml` file with your API keys:
-```toml
-XAI_API_KEY = "your-xai-api-key"
-OPENAI_API_KEY = "your-openai-api-key"
-ANTHROPIC_API_KEY = "your-anthropic-api-key"
-```
+3. Configure environment variables:
+   Create a `.env` file in the project root with your API keys:
+   ```env
+   OPENAI_API_KEY=your_openai_api_key
+   ANTHROPIC_API_KEY=your_anthropic_api_key
+   DEEPSEEK_API_KEY=your_deepseek_api_key
+   ```
 
-## Usage
+4. Run the application:
+   ```bash
+   streamlit run app.py
+   ```
 
-1. Start the application:
-```bash
-streamlit run app.py
-```
+## Architecture
 
-2. Open your web browser and navigate to the provided URL (typically `http://localhost:8501`)
+### Model Management
+The application uses liteLLM to provide a unified interface for different LLM providers. This abstraction layer allows for:
+- Consistent API interface across providers
+- Easy addition of new model providers
+- Unified error handling
 
-3. Select your preferred model:
-   - Choose between xAI (Grok-Beta), OpenAI (GPT-4 Turbo), or Anthropic (Claude 3 Sonnet) from the sidebar dropdown
-   - The interface will update to reflect your chosen model
-
-4. Start chatting:
-   - Type your message in the chat input
-   - View AI responses with support for code and LaTeX rendering
-   - Conversations are automatically saved
-
-## Features in Detail
-
-### Model Selection
-- Switch between models in real-time using the sidebar dropdown
-- Each model has its own unique capabilities:
-  - Grok-Beta: xAI's latest model
-  - GPT-4 Turbo Preview: OpenAI's advanced model
-  - Claude 3 Sonnet: Anthropic's latest model
+### Conversation Handling
+- Conversations are stored as JSON files in the `conversations` directory
+- Each conversation includes:
+  - Message history
+  - Code blocks
+  - LaTeX expressions
+  - Timestamp
+  - Custom title
 
 ### Code Handling
 - Automatically detects code blocks in messages
@@ -80,8 +80,6 @@ streamlit run app.py
 ## File Structure
 ```
 ai-chat/
-├── .streamlit/
-│   └── secrets.toml
 ├── conversations/
 ├── .gitignore
 ├── README.md
