@@ -6,15 +6,14 @@ import json
 from datetime import datetime
 import os
 import openai
+from dotenv import load_dotenv
+from litellm import completion
+
+# Load environment variables
+load_dotenv()
 
 # Page config
-st.set_page_config(page_title="Grok Chat", page_icon="🤖", layout="wide")
-
-# Initialize OpenAI client
-client = OpenAI(
-    api_key=st.secrets["XAI_API_KEY"],
-    base_url="https://api.x.ai/v1",
-)
+st.set_page_config(page_title="AI Chat Assistant", page_icon="🤖", layout="wide")
 
 # Ensure the conversations directory exists
 if not os.path.exists("conversations"):
@@ -141,15 +140,15 @@ def render_message(content):
 
 # Define model names as variables
 MODEL_NAMES = {
-    "XAI": "grok-beta",
-    "OpenAI": "gpt-4o",
-    "Anthropic": "claude-3-5-sonnet-20241022"
+    "OpenAI": "openai/o1-mini",
+    "Anthropic": "anthropic/claude-3-5-sonnet-latest",
+    "DeepSeek": "deepseek/deepseek-chat"
 }
 
 # Initialize session state
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "system", "content": "You are Grok, a chatbot inspired by the Hitchhikers Guide to the Galaxy. When showing code examples, use markdown code blocks with language specification. For mathematical expressions, use LaTeX notation enclosed in single $ symbols."}
+        {"role": "system", "content": "You are a helpful AI assistant. When showing code examples, use markdown code blocks with language specification. For mathematical expressions, use LaTeX notation enclosed in single $ symbols."}
     ]
 if "code_blocks" not in st.session_state:
     st.session_state.code_blocks = {}
@@ -160,11 +159,11 @@ if "latex_blocks" not in st.session_state:
 with st.sidebar:
     st.title("💬 Conversations")
     
-    # Update model selector to include Anthropic
+    # Update model selector to include all providers
     model_provider = st.selectbox(
         "Select Model Provider",
-        ["XAI", "OpenAI", "Anthropic"],
-        help="Choose between XAI, OpenAI, and Anthropic models"
+        ["OpenAI", "Anthropic", "DeepSeek"],
+        help="Choose between OpenAI, Anthropic, and DeepSeek models"
     )
     
     # New conversation button
@@ -227,9 +226,9 @@ with st.sidebar:
                     st.rerun()
 
 # Main chat interface
-if model_provider == "XAI":
-    st.title("🤖 Grok Chat")
-    st.markdown(f"Chat with {MODEL_NAMES['XAI']}, powered by xAI")
+if model_provider == "DeepSeek":
+    st.title("🤖 DeepSeek Chat")
+    st.markdown(f"Chat with {MODEL_NAMES['DeepSeek']}, powered by DeepSeek")
 elif model_provider == "OpenAI":
     st.title("🤖 OpenAI Chat")
     st.markdown(f"Chat with {MODEL_NAMES['OpenAI']}, powered by OpenAI")
@@ -256,35 +255,18 @@ if prompt := st.chat_input("What's on your mind?"):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         try:
-            if model_provider == "XAI":
-                completion = client.chat.completions.create(
-                    model=MODEL_NAMES["XAI"],
-                    messages=st.session_state.messages
-                )
-                response = completion.choices[0].message.content
-            elif model_provider == "OpenAI":
-                openai_client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-                completion = openai_client.chat.completions.create(
-                    model=MODEL_NAMES["OpenAI"],
-                    messages=st.session_state.messages
-                )
-                response = completion.choices[0].message.content
-            else:  # Anthropic
-                anthropic_client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
-                messages = [
-                    {
-                        "role": "user" if msg["role"] == "user" else "assistant",
-                        "content": msg["content"]
-                    }
-                    for msg in st.session_state.messages[1:]  # Skip system message
-                ]
-                completion = anthropic_client.messages.create(
-                    model=MODEL_NAMES["Anthropic"],
-                    max_tokens=4096,
-                    messages=messages,
-                    system=st.session_state.messages[0]["content"]  # Use system message
-                )
-                response = completion.content[0].text
+            # Configure model and API key based on provider
+            model = MODEL_NAMES[model_provider]
+            api_key = os.getenv(f"{model_provider.upper()}_API_KEY")
+            
+            # Use liteLLM for all model providers
+            completion_response = completion(
+                model=model,
+                messages=st.session_state.messages,
+                api_key=api_key
+            )
+            
+            response = completion_response.choices[0].message.content
             
             # Add assistant response to chat history
             st.session_state.messages.append({"role": "assistant", "content": response})
